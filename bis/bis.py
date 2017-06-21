@@ -19,3 +19,32 @@ def stringCleaning(text):
 
     # Process replacements
     return regex.sub(lambda mo: replacements[mo.string[mo.start():mo.end()]], text)
+
+# There are a few things that we've found in scientific name strings that, if removed or modified, will result in a valid taxon name string for the name lookup in ITIS and other places
+def cleanScientificName(scientificname):
+    import re
+
+    # Get rid of ? - they might mean something, but...
+    scientificname = scientificname.replace("?", "")
+
+    # Get rid of text in parens and brackets; this is a design decision to potentially do away with information that might be important, but it gets retained in the original records
+    scientificname = re.sub("[\(\[].*?[\)\]]", "", scientificname)
+    
+    # Clean up all upper case strings because the ITIS service doesn't like them
+    if any(x.isupper() for x in scientificname[-(len(scientificname)-1):]):
+        scientificname = scientificname.lower().capitalize()
+
+    # Replace "subsp." with "ssp." in order to make the subspecies search work
+    scientificname = scientificname.replace("subsp.", "ssp.")
+    
+    # Get rid of characters after certain characters to produce a shorter (and sometimes higher taxonomy) name string compatible with the ITIS service
+    afterChars = ["(", " sp.", " spp.", " sp ", " spp ", " n.", " pop.", "l."]
+    # Add a space at the end for this step to help tease out issues with split characters ending the string (could probably be better as re)
+    scientificname = scientificname+" "
+    for char in afterChars:
+        scientificname = scientificname.split(char, 1)[0]
+
+    # Final cleanup of extra spaces
+    scientificname = " ".join(scientificname.split())
+
+    return scientificname
