@@ -5,8 +5,7 @@ def tirRegistration(baseURL,recordInfoPairs):
     return requests.get(baseURL+"&q="+insertSQL).json()
 
 # Basic function to insert subject ID, property, and value into tircache
-def cacheToTIR(gid,infotype,pairs):
+def cacheToTIR(baseURL,id,infotype,pairs):
     import requests
-    updateQ = "UPDATE tir.tir SET "+infotype+" = '"+pairs+"' WHERE gid = "+str(gid)
-    r = requests.get(getBaseURL()+"&q="+updateQ).json()
-    return r
+    q_update = "UPDATE tir.tir SET "+infotype+" = '"+pairs+"' WHERE id = "+str(id)
+    return requests.get(baseURL+"&q="+q_update).json()
