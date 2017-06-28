@@ -20,9 +20,12 @@ def packageNatureServePairs(speciesAPI,elementGlobalID):
     import requests
     from lxml import etree
     from io import StringIO
+    from bis import tir
 
     dt = datetime.datetime.utcnow().isoformat()
 
+    natureServeCodes = tir.tirConfig("Configuration:NatureServe Rank Code Descriptions").set_index("NatureServe Rank").to_dict()
+    
     natureServePairs = '"cacheDate"=>"'+dt+'"'
     natureServePairs = natureServePairs+',"elementGlobalID"=>"'+elementGlobalID+'"'
     
@@ -50,7 +53,11 @@ def packageNatureServePairs(speciesAPI,elementGlobalID):
                 natureServePairs = natureServePairs+',"globalStatusLastReviewed"=>"Unknown"'
 
             try:
-                natureServePairs = natureServePairs+',"usNationalStatusRankCode"=>"'+tree.xpath("//nationalStatus[@nationCode='US']/rank/code")[0].text+'"'
+                usNationalStatusRankCode = tree.xpath("//nationalStatus[@nationCode='US']/rank/code")[0].text
+                usNationalStatusRankCode_rounded = usNationalStatusRankCode[:2]
+                usNationalStatusRoundedRankDescription = natureServeCodes["Definition"][usNationalStatusRankCode_rounded]
+                natureServePairs = natureServePairs+',"usNationalStatusRankCode"=>"'+usNationalStatusRankCode+'"'
+                natureServePairs = natureServePairs+',"usNationalStatusRoundedRankDescription"=>"'+usNationalStatusRoundedRankDescription+'"'
             except:
                 pass
             try:
@@ -64,7 +71,11 @@ def packageNatureServePairs(speciesAPI,elementGlobalID):
                 for elem in usStatesTree.iter():
                     stateName = elem.attrib.get('subnationName')
                     if isinstance(stateName, str):
-                        natureServePairs = natureServePairs+',"StateCode:'+stateName+'"=>"'+tree.xpath("//subnationalStatus[@subnationName='"+stateName+"']/rank/code")[0].text+'"'
+                        stateRankCode = tree.xpath("//subnationalStatus[@subnationName='"+stateName+"']/rank/code")[0].text
+                        stateRankCode_rounded = stateRankCode[:2]
+                        stateRoundedRankDescription = natureServeCodes["Definition"][stateRankCode_rounded]
+                        natureServePairs = natureServePairs+',"StateCode:'+stateName+'"=>"'+stateRankCode+'"'
+                        natureServePairs = natureServePairs+',"StateStatus:'+stateName+'"=>"'+stateRoundedRankDescription+'"'
             except:
                 pass
         else:

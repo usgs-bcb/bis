@@ -16,11 +16,12 @@ def getITISSearchURL(searchstr):
     # "valid" and "accepted" usage values will further constrain the search and handle cases where the search returns more than one possible record on name
     return "http://services.itis.gov/?wt=json&rows=10&q=(usage:accepted%20OR%20usage:valid)%20AND%20"+itisTerm+":"+searchstr.replace(" ","\%20")
 
-def packageITISPairs(matchMethod,itisDoc):
+def packageITISPairs(matchMethod,matchString,itisDoc):
     import datetime
-    dt = datetime.datetime.utcnow().isoformat()
-    itisPairs = '"cacheDate"=>"'+dt+'"'
+    from bis import bis
+    itisPairs = '"cacheDate"=>"'+datetime.datetime.utcnow().isoformat()+'"'
     itisPairs = itisPairs+',"itisMatchMethod"=>"'+matchMethod+'"'
+    itisPairs = itisPairs+',"itisMatchString"=>"'+bis.stringCleaning(matchString)+'"'
 
     if type(itisDoc) is int:
         return itisPairs

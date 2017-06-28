@@ -16,7 +16,10 @@ def packageWoRMSPairs(matchMethod,wormsData):
     if type(wormsData) is int:
         return wormsPairs
     else:
-        wormsPairs = wormsPairs+',"AphiaID"=>"'+str(wormsData['AphiaID'])+'"'
+        try:
+            wormsPairs = wormsPairs+',"AphiaID"=>"'+str(wormsData['AphiaID'])+'"'
+        except:
+            wormsPairs = wormsPairs+',"AphiaID"=>"None"'
         wormsPairs = wormsPairs+',"scientificname"=>"'+wormsData['scientificname']+'"'
         wormsPairs = wormsPairs+',"status"=>"'+wormsData['status']+'"'
         wormsPairs = wormsPairs+',"rank"=>"'+wormsData['rank']+'"'
