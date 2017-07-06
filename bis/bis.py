@@ -27,8 +27,8 @@ def cleanScientificName(scientificname):
     # Get rid of ? - they might mean something, but...
     scientificname = scientificname.replace("?", "")
 
-    # Get rid of text in parens and brackets; this is a design decision to potentially do away with information that might be important, but it gets retained in the original records
-    scientificname = re.sub("[\(\[].*?[\)\]]", "", scientificname)
+    # Get rid of text in parens, brackets, or single quotes; this is a design decision to potentially do away with information that might be important, but it gets retained in the original records
+    scientificname = re.sub("[\(\[\'].*?[\'\)\]]", "", scientificname)
     
     # Clean up all upper case strings because the ITIS service doesn't like them
     if any(x.isupper() for x in scientificname[-(len(scientificname)-1):]):
@@ -50,7 +50,7 @@ def cleanScientificName(scientificname):
             scientificname = scientificname.replace("ssp.", "").replace("ssp","")
     
     # Get rid of characters after certain characters to produce a shorter (and sometimes higher taxonomy) name string compatible with the ITIS service
-    afterChars = ["(", " sp.", " spp.", " sp ", " spp ", " n.", " pop.", "l."]
+    afterChars = ["(", " sp.", " spp.", " sp ", " spp ", " n.", " pop.", "l.", "/"]
     # Add a space at the end for this step to help tease out issues with split characters ending the string (could probably be better as re)
     scientificname = scientificname+" "
     for char in afterChars:

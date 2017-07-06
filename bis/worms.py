@@ -44,3 +44,21 @@ def packageWoRMSPairs(matchMethod,wormsData):
             pass
 
         return wormsPairs
+
+def packageWoRMSJSON(matchMethod,matchString,wormsDoc):
+    from datetime import datetime
+    from bis import bis
+    wormsData = {}
+    wormsData["cacheDate"] = datetime.utcnow().isoformat()
+    wormsData["MatchMethod"] = matchMethod
+    wormsData["MatchString"] = bis.stringCleaning(matchString)
+    
+    if type(wormsDoc) is not int:
+        # Remove WoRMS properties that we don't want/need to cache
+        keysToPop = ["authority","citation","valid_authority","url"]
+        for key in keysToPop:
+            wormsDoc.pop(key,None)
+        
+        wormsData.update(wormsDoc)
+    
+    return wormsData

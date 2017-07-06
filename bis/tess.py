@@ -1,35 +1,84 @@
-def queryTESSbyTSN(tsn):
+def queryTESS(queryType=None,criteria=None):
     import requests
-    tessSpeciesQueryByTSNBaseURL = "https://ecos.fws.gov/ecp0/TessQuery?request=query&xquery=/SPECIES_DETAIL[TSN="
-    return requests.get(tessSpeciesQueryByTSNBaseURL+tsn+"]").text
+    import xmltodict
+    from datetime import datetime
+    from bis import bis
+    
+    # These properties in TESS data often contain single quotes or other characters that need to be escaped in order for the resulting data to be inserted into databases like PostgreSQL
+    keysToClean = ["COMNAME","INVNAME"]
+    
+    listingStatusKeys = ["STATUS_TEXT","LISTING_DATE","POP_ABBREV","POP_DESC"]
+    
+    tessData = {}
+    tessData["dateCached"] = datetime.utcnow().isoformat()
+    tessData["queryType"] = queryType
+    tessData["criteria"] = criteria
+    tessData["result"] = False
+    
+    if queryType is not None and criteria is not None:
+        # The XQuery service from TESS wants string values in quotes
+        if queryType != "TSN":
+            criteria = '"'+criteria+'"'
 
-def packageTESSPairs(tsn,tessData):
-    import datetime
-    from lxml import etree
-    from io import StringIO
-    dt = datetime.datetime.utcnow().isoformat()
-    tessPairs = '"cacheDate"=>"'+dt+'"'
-    tessPairs = tessPairs+',"tsn"=>"'+tsn+'"'
+        # Query the TESS XQuery service using queryType and criteria arguments
+        queryURL = "https://ecos.fws.gov/ecp0/TessQuery?request=query&xquery=/SPECIES_DETAIL["+queryType+"="+criteria+"]"
+        tessXML = requests.get(queryURL).text
 
-    if tessData.find('<results/>') > 0:
-        tessPairs = tessPairs+',"result"=>"none"'
-    else:
-        try:
-            rawXML = tessData.replace('<?xml version="1.0" encoding="iso-8859-1"?>', '')
-            f = StringIO(rawXML)
-            tree = etree.parse(f)
-            tessPairs = tessPairs+',"result"=>"success"'
-            tessPairs = tessPairs+',"entityId"=>"'+tree.xpath('/results/SPECIES_DETAIL/ENTITY_ID')[0].text+'"'
-            tessPairs = tessPairs+',"SpeciesCode"=>"'+tree.xpath('/results/SPECIES_DETAIL/SPCODE')[0].text+'"'
-            tessPairs = tessPairs+',"CommonName"=>"'+tree.xpath('/results/SPECIES_DETAIL/COMNAME')[0].text+'"'
-            tessPairs = tessPairs+',"PopulationDescription"=>"'+tree.xpath('/results/SPECIES_DETAIL/POP_DESC')[0].text+'"'
-            tessPairs = tessPairs+',"Status"=>"'+tree.xpath('/results/SPECIES_DETAIL/STATUS')[0].text+'"'
-            tessPairs = tessPairs+',"StatusText"=>"'+tree.xpath('/results/SPECIES_DETAIL/STATUS_TEXT')[0].text+'"'
-            rListingDate = tree.xpath('/results/SPECIES_DETAIL/LISTING_DATE')
-            if len(rListingDate) > 0:
-                tessPairs = tessPairs+',"ListingDate"=>"'+rListingDate[0].text+'"'
-            tessPairs = tessPairs.replace("\'","''").replace(";","|").replace("--","-")
-        except:
-            tessPairs = tessPairs+',"result"=>"error"'
+        # Build an unordered dict from the TESS XML response (we don't care about ordering for our purposes here)
+        tessDict = xmltodict.parse(tessXML, dict_constructor=dict)
+        
+        # Handle cases where there is more than one listing designation for a species
+        if tessDict["results"] is not None and type(tessDict["results"]["SPECIES_DETAIL"]) is list:
+            tessData["result"] = True
+            tessData["ENTITY_ID"] = tessDict["results"]["SPECIES_DETAIL"][0]["ENTITY_ID"]
+            tessData["SPCODE"] = tessDict["results"]["SPECIES_DETAIL"][0]["SPCODE"]
+            tessData["VIPCODE"] = tessDict["results"]["SPECIES_DETAIL"][0]["VIPCODE"]
+            tessData["DPS"] = tessDict["results"]["SPECIES_DETAIL"][0]["DPS"]
+            tessData["COUNTRY"] = tessDict["results"]["SPECIES_DETAIL"][0]["COUNTRY"]
+            tessData["INVNAME"] = bis.stringCleaning(tessDict["results"]["SPECIES_DETAIL"][0]["INVNAME"])
+            tessData["SCINAME"] = tessDict["results"]["SPECIES_DETAIL"][0]["SCINAME"]
+            tessData["COMNAME"] = bis.stringCleaning(tessDict["results"]["SPECIES_DETAIL"][0]["COMNAME"])
+            tessData["REFUGE_OCCURRENCE"] = tessDict["results"]["SPECIES_DETAIL"][0]["REFUGE_OCCURRENCE"]
+            tessData["FAMILY"] = tessDict["results"]["SPECIES_DETAIL"][0]["FAMILY"]
+            tessData["TSN"] = tessDict["results"]["SPECIES_DETAIL"][0]["TSN"]
 
-    return tessPairs
+            tessData["listingStatus"] = []
+
+            for speciesDetail in tessDict["results"]["SPECIES_DETAIL"]:
+                thisStatus = {}
+                thisStatus["STATUS"] = speciesDetail["STATUS_TEXT"]
+                # If a species is not actually listed, there will not be a listing date
+                if "LISTING_DATE" in speciesDetail:
+                    thisStatus["LISTING_DATE"] = speciesDetail["LISTING_DATE"]
+                thisStatus["POP_DESC"] = bis.stringCleaning(speciesDetail["POP_DESC"])
+                thisStatus["POP_ABBREV"] = bis.stringCleaning(speciesDetail["POP_ABBREV"])
+                tessData["listingStatus"].append(thisStatus)
+
+        # Handle cases where there is only a single listing status for a species by cleaning/popping a few keys and appending the rest of the result dict
+        elif tessDict["results"] is not None and type(tessDict["results"]["SPECIES_DETAIL"]) is dict:
+            tessData["result"] = True
+
+            # Clean up the problematic string properties
+            for key in keysToClean:
+                tessData[key] = bis.stringCleaning(tessDict["results"]["SPECIES_DETAIL"][key])
+                tessDict["results"]["SPECIES_DETAIL"].pop(key,None)
+
+            # Build the single listing status record for this species
+            tessData["listingStatus"] = []
+            thisStatus = {}
+            thisStatus["STATUS"] = tessDict["results"]["SPECIES_DETAIL"]["STATUS_TEXT"]
+            # If a species is not actually listed, there will not be a listing date
+            if "LISTING_DATE" in tessDict["results"]["SPECIES_DETAIL"]:
+                thisStatus["LISTING_DATE"] = tessDict["results"]["SPECIES_DETAIL"]["LISTING_DATE"]
+            thisStatus["POP_DESC"] = bis.stringCleaning(tessDict["results"]["SPECIES_DETAIL"]["POP_DESC"])
+            thisStatus["POP_ABBREV"] = bis.stringCleaning(tessDict["results"]["SPECIES_DETAIL"]["POP_ABBREV"])
+            tessData["listingStatus"].append(thisStatus)
+
+            # Get rid of listing status information from the original dict
+            for key in listingStatusKeys:
+                tessDict["results"]["SPECIES_DETAIL"].pop(key,None)
+
+            # Put the remaining properties into the record for this species
+            tessData.update(tessDict["results"]["SPECIES_DETAIL"])
+        
+    return tessData
