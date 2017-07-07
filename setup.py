@@ -4,19 +4,19 @@ from setuptools import setup, find_packages
 from codecs import open
 from os import path
 
-here = path.abspath(path.dirname(__file__))
 
-# Get the long description from the README file
-with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
-    long_description = f.read()
+# Utility function to read the README file.
+def read(fname):
+    return open(path.join(path.dirname(__file__), fname), encoding='utf-8').read()
 
 setup(
     name='bis',
 
-    version='0.1',
+# PEP - version as three components ("major.minor.micro")
+    version='0.0.1',
 
     description='A set of helper code for Biogeographic Information System projects',
-    long_description=long_description,
+    long_description=read('README.rst'),
 
     url='https://maps.usgs.gov/',
 
@@ -43,8 +43,5 @@ setup(
 
     keywords='biogeography',
 
-    packages=find_packages(exclude=['contrib', 'docs', 'tests']),
-
-    py_modules=["tir"],
-
+    packages=['bis'],
 )
