@@ -38,7 +38,10 @@ def queryTESS(queryType=None,criteria=None):
             tessData["INVNAME"] = bis.stringCleaning(tessDict["results"]["SPECIES_DETAIL"][0]["INVNAME"])
             tessData["SCINAME"] = tessDict["results"]["SPECIES_DETAIL"][0]["SCINAME"]
             tessData["COMNAME"] = bis.stringCleaning(tessDict["results"]["SPECIES_DETAIL"][0]["COMNAME"])
-            tessData["REFUGE_OCCURRENCE"] = tessDict["results"]["SPECIES_DETAIL"][0]["REFUGE_OCCURRENCE"]
+            try:
+                tessData["REFUGE_OCCURRENCE"] = tessDict["results"]["SPECIES_DETAIL"][0]["REFUGE_OCCURRENCE"]
+            except:
+                pass
             tessData["FAMILY"] = tessDict["results"]["SPECIES_DETAIL"][0]["FAMILY"]
             tessData["TSN"] = tessDict["results"]["SPECIES_DETAIL"][0]["TSN"]
 

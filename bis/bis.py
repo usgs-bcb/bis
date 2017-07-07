@@ -44,10 +44,10 @@ def cleanScientificName(scientificname):
             nameWODigits = nameWODigits+" "+word
     scientificname = nameWODigits
         
-    # If the name did not include an actual subspecies name, get rid of the indicator
+    # If the name did not include an actual subspecies/variety name, get rid of the indicator
     if len(scientificname) > 0:
-        if scientificname.split()[-1] in ["ssp.","ssp"]:
-            scientificname = scientificname.replace("ssp.", "").replace("ssp","")
+        if scientificname.split()[-1] in ["ssp.","ssp","var."]:
+            scientificname = scientificname.replace("ssp.", "").replace("ssp","").replace("var.","")
     
     # Get rid of characters after certain characters to produce a shorter (and sometimes higher taxonomy) name string compatible with the ITIS service
     afterChars = ["(", " sp.", " spp.", " sp ", " spp ", " n.", " pop.", "l.", "/"]
@@ -55,6 +55,9 @@ def cleanScientificName(scientificname):
     scientificname = scientificname+" "
     for char in afterChars:
         scientificname = scientificname.split(char, 1)[0]
+    
+    # Get rid of any lingering periods
+    scientificname = scientificname.replace(".", "")
 
     # Cleanup extra spaces
     scientificname = " ".join(scientificname.split())
