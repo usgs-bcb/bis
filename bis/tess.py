@@ -9,6 +9,9 @@ def queryTESS(queryType=None,criteria=None):
     
     listingStatusKeys = ["STATUS_TEXT","LISTING_DATE","POP_ABBREV","POP_DESC"]
     
+    if criteria is not None:
+        criteria = bis.stringCleaning(criteria)
+
     tessData = {}
     tessData["dateCached"] = datetime.utcnow().isoformat()
     tessData["queryType"] = queryType
@@ -18,14 +21,18 @@ def queryTESS(queryType=None,criteria=None):
     if queryType is not None and criteria is not None:
         # The XQuery service from TESS wants string values in quotes
         if queryType != "TSN":
-            criteria = '"'+criteria+'"'
+            criteria = '"'+bis.stringCleaning(criteria)+'"'
 
         # Query the TESS XQuery service using queryType and criteria arguments
         queryURL = "https://ecos.fws.gov/ecp0/TessQuery?request=query&xquery=/SPECIES_DETAIL["+queryType+"="+criteria+"]"
+        print (queryURL)
         tessXML = requests.get(queryURL).text
 
         # Build an unordered dict from the TESS XML response (we don't care about ordering for our purposes here)
         tessDict = xmltodict.parse(tessXML, dict_constructor=dict)
+        
+        if "results" not in list(tessDict.keys()):
+            return tessData
         
         # Handle cases where there is more than one listing designation for a species
         if tessDict["results"] is not None and type(tessDict["results"]["SPECIES_DETAIL"]) is list:
@@ -39,7 +46,7 @@ def queryTESS(queryType=None,criteria=None):
             tessData["SCINAME"] = tessDict["results"]["SPECIES_DETAIL"][0]["SCINAME"]
             tessData["COMNAME"] = bis.stringCleaning(tessDict["results"]["SPECIES_DETAIL"][0]["COMNAME"])
             try:
-                tessData["REFUGE_OCCURRENCE"] = tessDict["results"]["SPECIES_DETAIL"][0]["REFUGE_OCCURRENCE"]
+                tessData["REFUGE_OCCURRENCE"] = bis.stringCleaning(tessDict["results"]["SPECIES_DETAIL"][0]["REFUGE_OCCURRENCE"])
             except:
                 pass
             tessData["FAMILY"] = tessDict["results"]["SPECIES_DETAIL"][0]["FAMILY"]

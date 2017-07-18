@@ -1,9 +1,13 @@
 # Function for cleaning up strings (started with scientific name strings), replacing characters that mess up API data inserts into PostgreSQL via the GC2 API
 def stringCleaning(text):    
+    if text is None:
+        return None
+    
     import re
 
     # Specify replacements
     replacements = {}
+    replacements["'"] = "''"
     replacements["'"] = "''"
     replacements["--"] = ""
     replacements["&"] = "and"
@@ -24,8 +28,9 @@ def stringCleaning(text):
 def cleanScientificName(scientificname):
     import re
 
-    # Get rid of ? - they might mean something, but...
-    scientificname = scientificname.replace("?", "")
+    # Get rid of ? and * - they might mean something, but...
+    for character in ["?","*"]:
+        scientificname = scientificname.replace(character, "")
 
     # Get rid of text in parens, brackets, or single quotes; this is a design decision to potentially do away with information that might be important, but it gets retained in the original records
     scientificname = re.sub("[\(\[\'].*?[\'\)\]]", "", scientificname)

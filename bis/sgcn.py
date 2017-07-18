@@ -27,3 +27,22 @@ def getDateInserted(baseURL,sgcn_state,sgcn_year):
         return r["features"][0]["properties"]["dateinserted"]
     else:
         return "1992-08-08"
+    
+def getSGCNCommonName(baseURL,scientificname):
+    import requests
+    _commonname = None
+    q = "SELECT commonname_submitted FROM sgcn.sgcn WHERE scientificname_submitted = '"+scientificname+"' AND commonname_submitted <> '' ORDER BY dateinserted DESC LIMIT 1"
+    r = requests.get(baseURL+"&q="+q).json()
+    if len(r["features"]) > 0:
+        _commonname = r["features"][0]["properties"]["commonname_submitted"]
+    return _commonname
+
+def getSGCNTaxonomicGroup(baseURL,scientificname):
+    import requests
+    from bis import bis
+    _taxonomicgroup = None
+    q = "SELECT taxonomicgroup_submitted FROM sgcn.sgcn WHERE scientificname_submitted = '"+bis.stringCleaning(scientificname)+"' AND taxonomicgroup_submitted <> '' ORDER BY dateinserted ASC LIMIT 1"
+    r = requests.get(baseURL+"&q="+q).json()
+    if len(r["features"]) > 0:
+        _taxonomicgroup = r["features"][0]["properties"]["taxonomicgroup_submitted"]
+    return _taxonomicgroup
