@@ -52,6 +52,7 @@ def packageNatureServeJSON(speciesAPI,elementGlobalID):
             natureServeData["roundedGlobalRankCode"] = _globalStatus["roundedRank"]["code"]
             natureServeData["roundedGlobalRankDescription"] = _globalStatus["roundedRank"]["description"]
 
+            _usNationalStatus = None
             if type(_nationalStatus) is list:
                 for nationalStatusRecord in _nationalStatus:
                     if nationalStatusRecord["@nationCode"] == "US":
@@ -60,8 +61,6 @@ def packageNatureServeJSON(speciesAPI,elementGlobalID):
             elif type(_nationalStatus) is dict:
                 if _nationalStatus["@nationCode"] == "US":
                     _usNationalStatus = _nationalStatus
-            else:
-                _usNationalStatus = None
                 
             if _usNationalStatus is not None:
                 natureServeData["usNationalStatusCode"] = _usNationalStatus["roundedRank"]["code"]
