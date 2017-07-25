@@ -25,7 +25,6 @@ def queryTESS(queryType=None,criteria=None):
 
         # Query the TESS XQuery service using queryType and criteria arguments
         queryURL = "https://ecos.fws.gov/ecp0/TessQuery?request=query&xquery=/SPECIES_DETAIL["+queryType+"="+criteria+"]"
-        print (queryURL)
         tessXML = requests.get(queryURL).text
 
         # Build an unordered dict from the TESS XML response (we don't care about ordering for our purposes here)
@@ -60,8 +59,11 @@ def queryTESS(queryType=None,criteria=None):
                 # If a species is not actually listed, there will not be a listing date
                 if "LISTING_DATE" in speciesDetail:
                     thisStatus["LISTING_DATE"] = speciesDetail["LISTING_DATE"]
-                thisStatus["POP_DESC"] = bis.stringCleaning(speciesDetail["POP_DESC"])
-                thisStatus["POP_ABBREV"] = bis.stringCleaning(speciesDetail["POP_ABBREV"])
+                # There are cases where population description information is missing from TESS records
+                if "POP_DESC" in speciesDetail:
+                    thisStatus["POP_DESC"] = bis.stringCleaning(speciesDetail["POP_DESC"])
+                if "POP_ABBREV" in speciesDetail:
+                    thisStatus["POP_ABBREV"] = bis.stringCleaning(speciesDetail["POP_ABBREV"])
                 tessData["listingStatus"].append(thisStatus)
 
         # Handle cases where there is only a single listing status for a species by cleaning/popping a few keys and appending the rest of the result dict
@@ -80,8 +82,11 @@ def queryTESS(queryType=None,criteria=None):
             # If a species is not actually listed, there will not be a listing date
             if "LISTING_DATE" in tessDict["results"]["SPECIES_DETAIL"]:
                 thisStatus["LISTING_DATE"] = tessDict["results"]["SPECIES_DETAIL"]["LISTING_DATE"]
-            thisStatus["POP_DESC"] = bis.stringCleaning(tessDict["results"]["SPECIES_DETAIL"]["POP_DESC"])
-            thisStatus["POP_ABBREV"] = bis.stringCleaning(tessDict["results"]["SPECIES_DETAIL"]["POP_ABBREV"])
+            # There are cases where population description information is missing from TESS records
+            if "POP_DESC" in tessDict["results"]["SPECIES_DETAIL"]:
+                thisStatus["POP_DESC"] = bis.stringCleaning(tessDict["results"]["SPECIES_DETAIL"]["POP_DESC"])
+            if "POP_ABBREV" in tessDict["results"]["SPECIES_DETAIL"]:
+                thisStatus["POP_ABBREV"] = bis.stringCleaning(tessDict["results"]["SPECIES_DETAIL"]["POP_ABBREV"])
             tessData["listingStatus"].append(thisStatus)
 
             # Get rid of listing status information from the original dict

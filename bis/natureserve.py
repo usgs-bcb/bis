@@ -40,6 +40,7 @@ def packageNatureServeJSON(speciesAPI,elementGlobalID):
         natureServeData["status"] = "Not Found"
     else:
         natureServeDict = xmltodict.parse(requests.get(speciesAPI+"&uid="+elementGlobalID).text, dict_constructor=dict)
+
         if "globalSpecies" not in natureServeDict["globalSpeciesList"]:
             natureServeData["status"] = "Not Found"
         else:
@@ -59,6 +60,8 @@ def packageNatureServeJSON(speciesAPI,elementGlobalID):
             elif type(_nationalStatus) is dict:
                 if _nationalStatus["@nationCode"] == "US":
                     _usNationalStatus = _nationalStatus
+            else:
+                _usNationalStatus = None
                 
             if _usNationalStatus is not None:
                 natureServeData["usNationalStatusCode"] = _usNationalStatus["roundedRank"]["code"]
@@ -66,8 +69,11 @@ def packageNatureServeJSON(speciesAPI,elementGlobalID):
                     natureServeData["usNationalStatusDescription"] = natureServeCodes["Definition"][natureServeData["usNationalStatusCode"]]
                 except:
                     natureServeData["usNationalStatusDescription"] = natureServeData["usNationalStatusCode"]
-                    
-                _stateStatus = _usNationalStatus["subnationalStatuses"]["subnationalStatus"]
+                
+                if "subnationalStatuses" in list(_usNationalStatus.keys()):
+                    _stateStatus = _usNationalStatus["subnationalStatuses"]["subnationalStatus"]
+                else:
+                    _stateStatus = None
                 
                 if _stateStatus is not None:
                     natureServeData["stateStatus"] = []
