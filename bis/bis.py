@@ -7,13 +7,12 @@ def stringCleaning(text):
 
     # Specify replacements
     replacements = {}
-    replacements["'"] = "''"
-    replacements["'"] = "''"
-    replacements["--"] = ""
-    replacements["&"] = "and"
-    replacements['"'] = "''"
-    replacements[";"] = ","
-    replacements["#"] = "no."
+    replacements["'"] = "' || chr(39) || '"
+    replacements["--"] = "' || chr(45)chr(45) || '"
+    replacements["&"] = "' || chr(38) || '"
+    replacements['"'] = "' || chr(34) || '"
+    replacements[";"] = "' || chr(59) || '"
+    replacements["#"] = "' || chr(35) || '"
     
     # Compile the expressions
     regex = re.compile("(%s)" % "|".join(map(re.escape, replacements.keys())))
