@@ -1,7 +1,7 @@
-Biogeographic Information System (BIS) Helper Code
+pyBIS
 =======================
 
-This module contains scripts and configuration details needed for Biogeographic Information System projects.
+The Biogeographic Information System is a project of the Biogeographic Characterization Branch, part of Core Science Analytics, Synthesis and Library in the US Geological Survey. Our program works to characterize species, habitats, conservation protection measures, and active and projected threats to biodiversity in a living data system that helps inform decisions by resource managers and policy makers. The "pyBIS" Python package is part of our Biogeographic Information System, the underlying intelligence engine behind all of our work. The package contains several modules that perform data management functions for the BIS.
 
 ## Provisional Software Disclaimer
 Under USGS Software Release Policy, the software codes here are considered preliminary, not released officially, and posted to this repo for informal sharing among colleagues.

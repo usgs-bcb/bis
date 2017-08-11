@@ -46,3 +46,15 @@ def getSGCNTaxonomicGroup(baseURL,scientificname):
     if len(r["features"]) > 0:
         _taxonomicgroup = r["features"][0]["properties"]["taxonomicgroup_submitted"]
     return _taxonomicgroup
+
+def getSGCNStatesByYear(baseURL,scientificname):
+    import requests
+    from bis import bis
+    _taxonomicgroup = None
+    q = "SELECT sgcn_year, array_to_string(array_agg(sgcn_state), ',') states FROM sgcn.sgcn WHERE scientificname_submitted = '"+bis.stringCleaning(scientificname)+"' GROUP BY sgcn_year"
+    r = requests.get(baseURL+"&q="+q).json()
+    if len(r["features"]) > 0:
+        stateLists = []
+        for feature in r["features"]:
+            stateLists.append(feature["properties"])
+    return stateLists
