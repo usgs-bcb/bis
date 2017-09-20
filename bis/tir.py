@@ -22,3 +22,11 @@ def tirConfig(configItem):
             df = pd.read_table(file["url"],sep="\t")
     
     return df
+
+def baseTIRRegistration(collection,identifier):
+    from datetime import datetime
+    baseRecord = {}
+    baseRecord["originCollection"] = collection
+    baseRecord["originID"] = identifier
+    baseRecord["originDate"] = datetime.utcnow().isoformat()
+    return baseRecord

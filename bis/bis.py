@@ -7,7 +7,7 @@ def stringCleaning(text):
 
     # Specify replacements
     replacements = {}
-    replacements["'"] = "' || chr(39) || '"
+    replacements["'"] = "''"
     replacements["--"] = "' || chr(45)chr(45) || '"
     replacements["&"] = "' || chr(38) || '"
     replacements['"'] = "' || chr(34) || '"

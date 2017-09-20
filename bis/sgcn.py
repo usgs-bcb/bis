@@ -31,7 +31,8 @@ def getDateInserted(baseURL,sgcn_state,sgcn_year):
 def getSGCNCommonName(baseURL,scientificname):
     import requests
     _commonname = None
-    q = "SELECT commonname_submitted FROM sgcn.sgcn WHERE scientificname_submitted = '"+scientificname+"' AND commonname_submitted <> '' ORDER BY dateinserted DESC LIMIT 1"
+    # This query returns the most submitted common name from the SGCN data
+    q = "SELECT commonname_submitted FROM sgcn.sgcn WHERE scientificname_submitted = '"+scientificname+"' AND commonname_submitted <> '' GROUP BY commonname_submitted ORDER BY count(*) DESC LIMIT 1"
     r = requests.get(baseURL+"&q="+q).json()
     if len(r["features"]) > 0:
         _commonname = r["features"][0]["properties"]["commonname_submitted"]

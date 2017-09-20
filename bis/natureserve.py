@@ -1,3 +1,8 @@
+natureServeSpeciesQueryBaseURL = "https://services.natureserve.org/idd/rest/v1/globalSpecies/list/nameSearch?name="
+
+def getNatureServeNameSearchURL(scientificname):
+    return natureServeSpeciesQueryBaseURL+scientificname
+
 def searchDict(d, key, default=None):
     stack = [iter(d.items())]
     while stack:
