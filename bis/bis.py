@@ -21,8 +21,8 @@ def stringCleaning(text):
     text = text.strip()
 
     # Process replacements
-    return regex.sub(lambda mo: replacements[mo.string[mo.start():mo.end()]], text)
-
+    return regex.sub(lambda mo: replacements[mo.string[mo.start():mo.end()]], text).strip()
+    
 # There are a few things that we've found in scientific name strings that, if removed or modified, will result in a valid taxon name string for the name lookup in ITIS and other places
 def cleanScientificName(scientificname):
     import re
@@ -54,7 +54,7 @@ def cleanScientificName(scientificname):
             scientificname = scientificname.replace("ssp.", "").replace("ssp","").replace("var.","")
     
     # Get rid of characters after certain characters to produce a shorter (and sometimes higher taxonomy) name string compatible with the ITIS service
-    afterChars = ["(", " sp.", " spp.", " sp ", " spp ", " n.", " pop.", "l.", "/"]
+    afterChars = ["(", " sp.", " spp.", " sp ", " spp ", " n.", " pop.", "l.", "/", "&"]
     # Add a space at the end for this step to help tease out issues with split characters ending the string (could probably be better as re)
     scientificname = scientificname+" "
     for char in afterChars:
@@ -62,6 +62,9 @@ def cleanScientificName(scientificname):
     
     # Get rid of any lingering periods
     scientificname = scientificname.replace(".", "")
+    
+    # Add back in periods for specific indicators
+    scientificname = scientificname.replace("var ","var. ").replace("ssp ","ssp. ")
 
     # Cleanup extra spaces
     scientificname = " ".join(scientificname.split())

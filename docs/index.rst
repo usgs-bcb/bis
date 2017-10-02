@@ -1,9 +1,4 @@
-.. pyBIS documentation master file, created by
-   sphinx-quickstart on Mon Jul 31 14:43:56 2017.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
-Welcome to pyBIS's documentation!
+pyBIS - Biogeographic Information System utility code
 =================================
 
 Contents:
