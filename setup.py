@@ -13,7 +13,7 @@ setup(
     name='bis',
 
 # PEP - version as three components ("major.minor.micro")
-    version='0.0.1',
+    version='0.0.2',
 
     description='A set of helper code for Biogeographic Information System projects',
     long_description=read('README.rst'),

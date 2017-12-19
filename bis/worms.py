@@ -5,6 +5,8 @@ def getWoRMSSearchURL(searchType,target):
         return  "http://www.marinespecies.org/rest/AphiaRecordsByName/"+target+"?like=true&marine_only=false&offset=1"
     elif searchType == "AphiaID":
         return "http://www.marinespecies.org/rest/AphiaRecordByAphiaID/"+target
+    elif searchType == "searchAphiaID":
+        return "http://www.marinespecies.org/rest/AphiaIDByName/"+target+"?marine_only=false"
     
 # Pair worms properties that we want to cache
 def packageWoRMSPairs(matchMethod,wormsData):
@@ -62,3 +64,10 @@ def packageWoRMSJSON(matchMethod,matchString,wormsDoc):
         wormsData.update(wormsDoc)
     
     return wormsData
+
+def buildWoRMSTaxonomy(wormsData):
+    taxonomy = []
+    for taxRank in ["kingdom","phylum","class","order","family","genus"]:
+        taxonomy.append({"rank":taxRank.title(),"name":wormsData[taxRank]})
+    taxonomy.append({"rank":"Species","name":wormsData["valid_name"]})
+    return taxonomy

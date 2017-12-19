@@ -1,8 +1,5 @@
 natureServeSpeciesQueryBaseURL = "https://services.natureserve.org/idd/rest/v1/globalSpecies/list/nameSearch?name="
 
-def getNatureServeNameSearchURL(scientificname):
-    return natureServeSpeciesQueryBaseURL+scientificname
-
 def searchDict(d, key, default=None):
     stack = [iter(d.items())]
     while stack:
@@ -27,35 +24,48 @@ def queryNatureServeID(scientificname):
         return None
     else:
         return searchDict(natureServeDict,"globalSpeciesUid")
-
+        
 def packageNatureServeJSON(speciesAPI,elementGlobalID):
-    from datetime import datetime
     import requests
     import xmltodict
-    from bis import tir
 
     natureServeData = {}
-    natureServeData["dateCached"] = datetime.utcnow().isoformat()
-    natureServeData["result"] = False
-    natureServeData["elementGlobalID"] = elementGlobalID
 
-    natureServeCodes = tir.tirConfig("Configuration:NatureServe Rank Code Descriptions").set_index("NatureServe Rank").to_dict()
-    
     if elementGlobalID is None:
-        natureServeData["status"] = "Not Found"
+        natureServeData["result"] = False
     else:
         natureServeDict = xmltodict.parse(requests.get(speciesAPI+"&uid="+elementGlobalID).text, dict_constructor=dict)
 
         if "globalSpecies" not in natureServeDict["globalSpeciesList"]:
-            natureServeData["status"] = "Not Found"
+            natureServeData["result"] = False
         else:
             natureServeData["result"] = True
+            
+            natureServeData["availableKeys"] = list(natureServeDict["globalSpeciesList"]["globalSpecies"].keys())
+
+            natureServeData["classification"] = natureServeDict["globalSpeciesList"]["globalSpecies"]["classification"]
+            if "formalTaxonomy" in natureServeData["classification"]["taxonomy"].keys():
+                natureServeData["taxonomy"] = []
+                natureServeData["taxonomy"].append({"rank":"kingdom","name":natureServeData["classification"]["taxonomy"]["formalTaxonomy"]["kingdom"]})
+                natureServeData["taxonomy"].append({"rank":"phylum","name":natureServeData["classification"]["taxonomy"]["formalTaxonomy"]["phylum"]})
+                natureServeData["taxonomy"].append({"rank":"class","name":natureServeData["classification"]["taxonomy"]["formalTaxonomy"]["class"]})
+                natureServeData["taxonomy"].append({"rank":"order","name":natureServeData["classification"]["taxonomy"]["formalTaxonomy"]["order"]})
+                natureServeData["taxonomy"].append({"rank":"family","name":natureServeData["classification"]["taxonomy"]["formalTaxonomy"]["family"]})
+                natureServeData["taxonomy"].append({"rank":"genus","name":natureServeData["classification"]["taxonomy"]["formalTaxonomy"]["genus"]})
+                natureServeData["taxonomy"].append({"rank":"species","name":natureServeData["classification"]["names"]["scientificName"]["unformattedName"]})
+
+            natureServeData["conservationStatus"] = natureServeDict["globalSpeciesList"]["globalSpecies"]["conservationStatus"]
+            
+            natureServeData["conservationStatus_us"] = {}
 
             _globalStatus = natureServeDict["globalSpeciesList"]["globalSpecies"]["conservationStatus"]["natureServeStatus"]["globalStatus"]
-            _nationalStatus = natureServeDict["globalSpeciesList"]["globalSpecies"]["conservationStatus"]["natureServeStatus"]["globalStatus"]["nationalStatuses"]["nationalStatus"]
+            if "nationalStatuses" in natureServeDict["globalSpeciesList"]["globalSpecies"]["conservationStatus"]["natureServeStatus"]["globalStatus"].keys():
+                _nationalStatus = natureServeDict["globalSpeciesList"]["globalSpecies"]["conservationStatus"]["natureServeStatus"]["globalStatus"]["nationalStatuses"]["nationalStatus"]
+            else:
+                _nationalStatus = None
             
-            natureServeData["roundedGlobalRankCode"] = _globalStatus["roundedRank"]["code"]
-            natureServeData["roundedGlobalRankDescription"] = _globalStatus["roundedRank"]["description"]
+            natureServeData["conservationStatus_us"]["roundedGlobalRankCode"] = _globalStatus["roundedRank"]["code"]
+            natureServeData["conservationStatus_us"]["roundedGlobalRankDescription"] = _globalStatus["roundedRank"]["description"]
 
             _usNationalStatus = None
             if type(_nationalStatus) is list:
@@ -68,29 +78,21 @@ def packageNatureServeJSON(speciesAPI,elementGlobalID):
                     _usNationalStatus = _nationalStatus
                 
             if _usNationalStatus is not None:
-                natureServeData["usNationalStatusCode"] = _usNationalStatus["roundedRank"]["code"]
-                try:
-                    natureServeData["usNationalStatusDescription"] = natureServeCodes["Definition"][natureServeData["usNationalStatusCode"]]
-                except:
-                    natureServeData["usNationalStatusDescription"] = natureServeData["usNationalStatusCode"]
-                
+                natureServeData["conservationStatus_us"]["usNationalStatusCode"] = _usNationalStatus["roundedRank"]["code"]
+
                 if "subnationalStatuses" in list(_usNationalStatus.keys()):
                     _stateStatus = _usNationalStatus["subnationalStatuses"]["subnationalStatus"]
                 else:
                     _stateStatus = None
                 
                 if _stateStatus is not None:
-                    natureServeData["stateStatus"] = []
+                    natureServeData["conservationStatus_us"]["stateStatus"] = []
                     if type(_stateStatus) is dict:
                         thisStateStatus = {}
                         thisStateStatus["stateName"] = _stateStatus["@subnationName"]
                         thisStateStatus["stateCode"] = _stateStatus["@subnationCode"]
                         thisStateStatus["roundedRankCode"] = _stateStatus["roundedRank"]["code"]
-                        try:
-                            thisStateStatus["roundedRankDescription"] = natureServeCodes["Definition"][thisStateStatus["roundedRankCode"]]
-                        except:
-                            thisStateStatus["roundedRankDescription"] = thisStateStatus["roundedRankCode"]
-                        natureServeData["stateStatus"].append(thisStateStatus)
+                        natureServeData["conservationStatus_us"]["stateStatus"].append(thisStateStatus)
 
                     elif type(_stateStatus) is list:
                         for stateStatus in _stateStatus:
@@ -98,10 +100,6 @@ def packageNatureServeJSON(speciesAPI,elementGlobalID):
                             thisStateStatus["stateName"] = stateStatus["@subnationName"]
                             thisStateStatus["stateCode"] = stateStatus["@subnationCode"]
                             thisStateStatus["roundedRankCode"] = stateStatus["roundedRank"]["code"]
-                            try:
-                                thisStateStatus["roundedRankDescription"] = natureServeCodes["Definition"][thisStateStatus["roundedRankCode"]]
-                            except:
-                                thisStateStatus["roundedRankDescription"] = thisStateStatus["roundedRankCode"]
-                            natureServeData["stateStatus"].append(thisStateStatus)
+                            natureServeData["conservationStatus_us"]["stateStatus"].append(thisStateStatus)
 
     return natureServeData

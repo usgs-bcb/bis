@@ -12,16 +12,16 @@ def cacheToTIR(baseURL,id,infotype,pairs):
 
 def tirConfig(configItem):
     import requests
-    import pandas as pd
-    
-    df = None
+    import csv
+    import io
     
     r = requests.get("https://www.sciencebase.gov/catalog/item/54540db7e4b0dc779374504c?format=json&fields=files").json()
-    for file in r["files"]:
-        if file["title"] == configItem:
-            df = pd.read_table(file["url"],sep="\t")
+    configFileURL = next((f for f in r["files"] if f["title"] == configItem), None)["url"]
     
-    return df
+    configFile = requests.get(configFileURL).text
+    configData = list(csv.DictReader(io.StringIO(configFile), delimiter='\t'))
+
+    return configData
 
 def baseTIRRegistration(collection,identifier):
     from datetime import datetime

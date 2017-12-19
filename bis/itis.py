@@ -5,7 +5,7 @@ def getITISSearchURL(searchstr,fuzzy=False,validAccepted=True):
     itisTerm = "nameWOInd"
     
     # "var." and "ssp." indicate that the string has population and variation indicators and should use the WInd service
-    if searchstr.find("var.") > 0 or searchstr.find("ssp.") > 0:
+    if searchstr.find("var.") > 0 or searchstr.find("ssp.") > 0 or searchstr.find(" x ") > 0:
         itisTerm = "nameWInd"
     
     try:
