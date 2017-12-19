@@ -1,61 +1,22 @@
-# Get the current record count for an SGCN state and year
-def getCurrentRecordCount(baseURL,sgcn_state,sgcn_year):
+def getSGCNConfigFile(configType):
     import requests
-    r = requests.get(baseURL+"&q=SELECT COUNT(*) AS sumstateyear FROM sgcn.sgcn WHERE sgcn_year="+str(sgcn_year)+" AND sgcn_state='"+sgcn_state+"'").json()
-    return r["features"][0]["properties"]["sumstateyear"]
-
-# Flush a particular state and year from the sgcn table
-def clearStateYear(baseURL,sgcn_state,sgcn_year):
-    import requests
-    return requests.get(baseURL+"&q=DELETE FROM sgcn.sgcn WHERE sgcn_year="+str(sgcn_year)+" AND sgcn_state='"+sgcn_state+"'").json()
-
-# Insert a record into the SGCN table
-def insertSGCNData(baseURL,record):
-    import requests
-    from datetime import datetime
-
-    q = "INSERT INTO sgcn.sgcn (sourceid,sourcefilename,sourcefileurl,sgcn_state,sgcn_year,scientificname_submitted,commonname_submitted,taxonomicgroup_submitted,firstyear,dateinserted) \
-        VALUES \
-        ('"+record["sourceid"]+"','"+record["sourcefilename"]+"','"+record["sourcefileurl"]+"','"+record["sgcn_state"]+"',"+str(record["sgcn_year"])+",'"+record["scientificname_submitted"]+"','"+record["commonname_submitted"]+"','"+record["taxonomicgroup_submitted"]+"',"+str(record["firstyear"])+",'"+datetime.utcnow().isoformat()+"')"
-    return requests.get(baseURL+"&q="+q).json()
-
-# Get date inserted for SGCN state/year
-def getDateInserted(baseURL,sgcn_state,sgcn_year):
-    import requests
-    r = requests.get(baseURL+"&q=SELECT dateinserted FROM sgcn.sgcn WHERE sgcn_year="+str(sgcn_year)+" AND sgcn_state='"+sgcn_state+"' LIMIT 1").json()
-    if len(r["features"]) > 0:
-        return r["features"][0]["properties"]["dateinserted"]
-    else:
-        return "1992-08-08"
+    baseItem = "https://www.sciencebase.gov/catalog/item/56d720ece4b015c306f442d5"
     
-def getSGCNCommonName(baseURL,scientificname):
-    import requests
-    _commonname = None
-    # This query returns the most submitted common name from the SGCN data
-    q = "SELECT commonname_submitted FROM sgcn.sgcn WHERE scientificname_submitted = '"+scientificname+"' AND commonname_submitted <> '' GROUP BY commonname_submitted ORDER BY count(*) DESC LIMIT 1"
-    r = requests.get(baseURL+"&q="+q).json()
-    if len(r["features"]) > 0:
-        _commonname = r["features"][0]["properties"]["commonname_submitted"]
-    return _commonname
+    acceptedTitles = ["Taxonomic Group Mappings","Historic 2005 SWAP National List"]
+    
+    if configType not in acceptedTitles:
+        return None
+    
+    swapItemFiles = requests.get(baseItem+"?format=json&fields=files").json()
+    fileURL = next((f for f in swapItemFiles["files"] if f["title"] == configType),None)["url"]
 
-def getSGCNTaxonomicGroup(baseURL,scientificname):
-    import requests
-    from bis import bis
-    _taxonomicgroup = None
-    q = "SELECT taxonomicgroup_submitted FROM sgcn.sgcn WHERE scientificname_submitted = '"+bis.stringCleaning(scientificname)+"' AND taxonomicgroup_submitted <> '' ORDER BY dateinserted ASC LIMIT 1"
-    r = requests.get(baseURL+"&q="+q).json()
-    if len(r["features"]) > 0:
-        _taxonomicgroup = r["features"][0]["properties"]["taxonomicgroup_submitted"]
-    return _taxonomicgroup
+    if configType == "Taxonomic Group Mappings":
+        import json
+        return json.loads(requests.get(fileURL).text)
 
-def getSGCNStatesByYear(baseURL,scientificname):
-    import requests
-    from bis import bis
-    _taxonomicgroup = None
-    q = "SELECT sgcn_year, array_to_string(array_agg(sgcn_state), ',') states FROM sgcn.sgcn WHERE scientificname_submitted = '"+bis.stringCleaning(scientificname)+"' GROUP BY sgcn_year"
-    r = requests.get(baseURL+"&q="+q).json()
-    if len(r["features"]) > 0:
-        stateLists = []
-        for feature in r["features"]:
-            stateLists.append(feature["properties"])
-    return stateLists
+    elif configType == "Historic 2005 SWAP National List":
+        historicSWAP2005 = {"AuthorityURL_2005":baseItem,"AuthorityFile_2005":fileURL}
+        textFile = requests.get(fileURL, stream=True)
+        historicSWAP2005["speciesList_2005"] = [s.decode("utf-8") for s in textFile.iter_lines()]
+        return historicSWAP2005
+

@@ -27,8 +27,8 @@ def stringCleaning(text):
 def cleanScientificName(scientificname):
     import re
 
-    # Get rid of ? and * - they might mean something, but...
-    for character in ["?","*"]:
+    # Get rid of internal characters that are not processable by most of the lookup tools (reevaluate this step)
+    for character in ["?","*","Â","â","cf.","c.","u.","f."]:
         scientificname = scientificname.replace(character, "")
 
     # Get rid of text in parens, brackets, or single quotes; this is a design decision to potentially do away with information that might be important, but it gets retained in the original records
@@ -53,12 +53,13 @@ def cleanScientificName(scientificname):
         if scientificname.split()[-1] in ["ssp.","ssp","var."]:
             scientificname = scientificname.replace("ssp.", "").replace("ssp","").replace("var.","")
     
-    # Get rid of characters after certain characters to produce a shorter (and sometimes higher taxonomy) name string compatible with the ITIS service
-    afterChars = ["(", " sp.", " spp.", " sp ", " spp ", " n.", " pop.", "l.", "/", "&"]
-    # Add a space at the end for this step to help tease out issues with split characters ending the string (could probably be better as re)
-    scientificname = scientificname+" "
-    for char in afterChars:
-        scientificname = scientificname.split(char, 1)[0]
+    # Get rid of characters after certain characters to produce a shorter (and sometimes higher taxonomy) name string compatible with lookups
+    afterChars = ["(", " sp.", "sp_", " spp.", " sp ", " spp ", " n.", " pop.", "l.", "/", "&","vs","vs.","undescribed"," and "]
+    while any(substring in scientificname for substring in afterChars):
+        # Add a space at the end for this step to help tease out issues with split characters ending the string (could probably be better as re)
+        scientificname = scientificname+" "
+        for char in afterChars:
+            scientificname = scientificname.split(char, 1)[0]
     
     # Get rid of any lingering periods
     scientificname = scientificname.replace(".", "")
