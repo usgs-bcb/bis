@@ -23,51 +23,50 @@ def stringCleaning(text):
     # Process replacements
     return regex.sub(lambda mo: replacements[mo.string[mo.start():mo.end()]], text).strip()
     
-# There are a few things that we've found in scientific name strings that, if removed or modified, will result in a valid taxon name string for the name lookup in ITIS and other places
 def cleanScientificName(scientificname):
     import re
-
-    # Get rid of internal characters that are not processable by most of the lookup tools (reevaluate this step)
-    for character in ["?","*","Â","â","cf.","c.","u.","f."]:
-        scientificname = scientificname.replace(character, "")
-
-    # Get rid of text in parens, brackets, or single quotes; this is a design decision to potentially do away with information that might be important, but it gets retained in the original records
-    scientificname = re.sub("[\(\[\'].*?[\'\)\]]", "", scientificname)
+    from ftfy import fix_text
     
-    # Clean up all upper case strings because the ITIS service doesn't like them
-    if any(x.isupper() for x in scientificname[-(len(scientificname)-1):]):
-        scientificname = scientificname.lower().capitalize()
+    nameString = scientificname
+    
+    # Fix encoding translation issues
+    nameString = fix_text(nameString)
 
-    # Replace "subsp." with "ssp." in order to make the subspecies search work
-    scientificname = scientificname.replace("subsp.", "ssp.")
-    
-    # Get rid of any numbers, we can't really do anything with those
-    nameWODigits = ""
-    for word in scientificname.split():
-        if not any(c.isdigit() for c in word):
-            nameWODigits = nameWODigits+" "+word
-    scientificname = nameWODigits
-        
-    # If the name did not include an actual subspecies/variety name, get rid of the indicator
-    if len(scientificname) > 0:
-        if scientificname.split()[-1] in ["ssp.","ssp","var."]:
-            scientificname = scientificname.replace("ssp.", "").replace("ssp","").replace("var.","")
-    
-    # Get rid of characters after certain characters to produce a shorter (and sometimes higher taxonomy) name string compatible with lookups
-    afterChars = ["(", " sp.", "sp_", " spp.", " sp ", " spp ", " n.", " pop.", "l.", "/", "&","vs","vs.","undescribed"," and "]
-    while any(substring in scientificname for substring in afterChars):
-        # Add a space at the end for this step to help tease out issues with split characters ending the string (could probably be better as re)
-        scientificname = scientificname+" "
-        for char in afterChars:
-            scientificname = scientificname.split(char, 1)[0]
-    
-    # Get rid of any lingering periods
-    scientificname = scientificname.replace(".", "")
-    
-    # Add back in periods for specific indicators
-    scientificname = scientificname.replace("var ","var. ").replace("ssp ","ssp. ")
+    # Remove digits, we can't work with these right now
+    nameString = re.sub(r'\d+', '', nameString)
 
-    # Cleanup extra spaces
-    scientificname = " ".join(scientificname.split())
+    # Get rid of strings in parentheses and brackets (these might need to be revisited eventually, but we can often find a match without this information)
+    nameString = re.sub('[\(\[\"].*?[\)\]\"]', "", nameString)
+    nameString = ' '.join(nameString.split())
+    
+    # Remove some specific substrings
+    removeList = ["?","Family "]
+    nameString = re.sub(r'|'.join(map(re.escape, removeList)), '', nameString)
 
-    return scientificname
+    # Change uses of "subsp." to "ssp." for ITIS
+    nameString = nameString.replace("subsp.","ssp.")
+ 
+    # Particular words are used to describe variations or nuances in taxonomy but are not able to be used in matching names at this time
+    afterChars = ["("," AND ","/"," & "," vs "," undescribed ",","," formerly "," near ","Columbia Basin","Puget Trough"," n.sp. "," n. "," sp. "," sp "," pop. "," spp. "," cf. "," ] "]
+    nameString = nameString+" "
+    while any(substring in nameString for substring in afterChars):
+        for substring in afterChars:
+            nameString = nameString.split(substring, 1)[0]
+            nameString = nameString+" "
+
+    nameString = nameString.strip()
+
+    # Deal with cases where an "_" was used
+    if nameString.find("_") != -1:
+        nameString = ' '.join(nameString.split("_"))
+
+    # Check to make sure there is actually a subspecies or variety name supplied
+    if len(nameString) > 0:
+        namesList = nameString.split(" ")
+        if namesList[-1] in ["ssp.","var."]:
+            nameString = ' '.join(namesList[:-1])
+            
+    # Take care of capitalizing final cross indicator
+    nameString = nameString.replace(" x "," X ")
+    
+    return nameString.capitalize()
