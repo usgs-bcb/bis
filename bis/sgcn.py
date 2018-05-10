@@ -31,8 +31,66 @@ def getTaxGroup(taxonomy,mappings):
         return None
 
 
+def sgcn_source_item_metadata(item):
+    from datetime import datetime
+    
+    sourceItem = {"processingMetadata":{}}
+    sourceItem["processingMetadata"]["sourceID"] = item["link"]["url"]
+    sourceItem["processingMetadata"]["dateProcessed"] = datetime.utcnow().isoformat()
+
+    sgcn_year = next((d for d in item["dates"] if d["type"] == "Collected"), None)["dateString"]
+    if isinstance(sgcn_year, int):
+        sourceItem["processingMetadata"]["sgcn_year"] = sgcn_year
+    else:
+        return None
+
+    sgcn_state = next((t for t in item["tags"] if t["type"] == "Place"), None)["name"]
+    if isinstance(sgcn_state, str):
+        sourceItem["processingMetadata"]["sgcn_state"] = sgcn_state
+    else:
+        return None
+
+    processFile = next((f for f in item["files"] if f["title"] == "Process File"), None)
+    if processFile is None:
+        return None
+    else:
+        sourceItem["processingMetadata"]["processFileURL"] = processFile["url"]
+        sourceItem["processingMetadata"]["processFileName"] = processFile["name"]
+        sourceItem["processingMetadata"]["processFileUploadDate"] = datetime.strptime(processFile["dateUploaded"].split("T")[0], "%Y-%m-%d")
+        return sourceItem
+
+
+def process_sgcn_source_file(sourceItem):
+    import requests,csv,io
+
+    sourceItem["sourceData"] = []
+    sourceFileContents = requests.get(sourceItem["processingMetadata"]["processFileURL"]).text
+    inputData = list(csv.DictReader(io.StringIO(sourceFileContents), delimiter='\t'))
+    for record in inputData:
+        sourceItem["sourceData"].append({k.lower(): v for k, v in record.items()})
+    sourceItem["processingMetadata"]["sourceRecordCount"] = len(sourceItem["sourceData"])
+    
+    return sourceItem
+    
+
+def package_source_name(name):
+    import bis
+    from datetime import datetime
+
+    d_uniqueName = {}
+    d_uniqueName["nameProcessingMetadata"] = {}
+    d_uniqueName["nameProcessingMetadata"]["processingAlgorithmName"] = "bis.cleanScientificName"
+    d_uniqueName["nameProcessingMetadata"]["processingAlgorithmURI"] = "https://github.com/usgs-bcb/bis/blob/master/bis/bis.py"
+    d_uniqueName["nameProcessingMetadata"]["creationDate"] = datetime.utcnow().isoformat()
+    d_uniqueName["nameProcessingMetadata"]["sourceCollection"] = "SGCN Source Data"
+    d_uniqueName["ScientificName_original"] = name
+    d_uniqueName["ScientificName_clean"] = bis.cleanScientificName(name)
+    return d_uniqueName
+
+
 def sgcn_source_summary(sgcnSource,ScientificName_original):
     pipeline = [
+        {"$match":{"processingMetadata.legacy":{"$exists":False}}},
         {"$unwind":{"path":"$sourceData"}},
         {"$match":{"sourceData.scientific name":ScientificName_original}},
         {"$group":{"_id":"$processingMetadata.sgcn_year","states":{"$addToSet":"$processingMetadata.sgcn_state"},"Common Names":{"$addToSet":"$sourceData.common name"}}},
@@ -117,6 +175,19 @@ def sgcn_tess_synthesis(sgcnTIRProcessCollection,submittedNames):
         
         
 def sgcn_natureserve_summary(sgcnTIRCollection,ScientificName):
+    import urllib.request
+    import requests,json
+    
+    nsCodesFileName = "NS_CodeDescriptions.json"
+    
+    try:
+        nsCodes = json.loads(open(nsCodesFileName).read())
+    except:
+        sgcnBaseItem = requests.get("https://www.sciencebase.gov/catalog/item/56d720ece4b015c306f442d5?format=json&fields=files").json()
+        nsCodesFileURL = next((f for f in sgcnBaseItem["files"] if f["title"] == "NatureServe National Conservation Status Descriptions"), None)["url"]
+        urllib.request.urlretrieve(nsCodesFileURL, nsCodesFileName)
+        nsCodes = json.loads(open(nsCodesFileName).read())
+
     natureServeRecord = sgcnTIRCollection.find_one({"Scientific Name":ScientificName},{"NatureServe":1})
     
     if natureServeRecord is None or "NatureServe Record" not in natureServeRecord["NatureServe"].keys():
@@ -126,6 +197,7 @@ def sgcn_natureserve_summary(sgcnTIRCollection,ScientificName):
         nsSummaryRecord["Element National ID"] = natureServeRecord["NatureServe"]["NatureServe Record"]["@uid"]
         nsSummaryRecord["Element Global ID"] = natureServeRecord["NatureServe"]["NatureServe Record"]["natureServeGlobalConcept"]["@uid"]
         nsSummaryRecord["Rounded National Conservation Status"] = natureServeRecord["NatureServe"]["NatureServe Record"]["roundedNationalConservationStatus"]
+        nsSummaryRecord["National Conservation Status Description"] = nsCodes[nsSummaryRecord["Rounded National Conservation Status"]]
         nsSummaryRecord["Rounded Global Conservation Status"] = natureServeRecord["NatureServe"]["NatureServe Record"]["natureServeGlobalConcept"]["roundedGlobalConservationStatus"]
         nsSummaryRecord["Reference URL"] = natureServeRecord["NatureServe"]["NatureServe Record"]["natureServeGlobalConcept"]["natureServeExplorerURI"]
         try:
@@ -137,3 +209,19 @@ def sgcn_natureserve_summary(sgcnTIRCollection,ScientificName):
         except:
             nsSummaryRecord["National Status Last Changed"] = "Unknown"
         return {"NatureServe Summary":nsSummaryRecord}
+        
+        
+def set_legacy_sourcefile_flag(sgcnSource):
+    pipeline = [
+        {"$group":{
+            "_id":{"state":"$processingMetadata.sgcn_state","year":"$processingMetadata.sgcn_year"},
+            "files":{"$addToSet":"$processingMetadata.processFileURL"},
+            "dates":{"$addToSet":"$processingMetadata.processFileUploadDate"}
+        }},
+        {"$match":{"files.1":{"$exists":True}}}
+    ]
+
+    for record in sgcnSource.aggregate(pipeline):
+        record["dates"].sort(reverse=True)
+        sgcnSource.update_many({"$and":[{"processingMetadata.sgcn_state":record["_id"]["state"]},{"processingMetadata.sgcn_year":record["_id"]["year"]},{"processingMetadata.processFileUploadDate":{"$in":record["dates"][1:]}}]},{"$set":{"processingMetadata.legacyFile":True}})
+        
