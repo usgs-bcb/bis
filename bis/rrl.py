@@ -37,17 +37,26 @@ class ResearchReferenceLibrary:
         crossRefWorksAPI = "https://api.crossref.org/works"
         mailTo = "bcb@usgs.gov"
         
-        crossRefQuery = crossRefWorksAPI+"?mailto="+mailTo+"&query.bibliographic="+citation
+        crossRefQueryNoDOI = crossRefWorksAPI+"?mailto="+mailTo+"&query.bibliographic="+citation
         
         if doi is not None:
-            crossRefQuery = crossRefQuery+"&filter=doi:"+doi
+            crossRefQuery = crossRefQueryNoDOI+"&filter=doi:"+doi
             
         crossRefResults = requests.get(crossRefQuery).json()
         
         if crossRefResults["status"] == "failed":
             return None
         
-        if crossRefResults["message"]["total-results"] == 1 or crossRefResults["message"]["items"][0]["score"] >= threshold:
+        if doi is not None and "items" in crossRefResults["message"] and len(crossRefResults["message"]["items"]) == 1:
+            return crossRefResults["message"]["items"][0]
+        
+        if doi is not None and "items" in crossRefResults["message"] and len(crossRefResults["message"]["items"]) == 0:
+            crossRefResults = requests.get(crossRefQueryNoDOI).json()
+            
+            if crossRefResults["status"] == "failed":
+                return None
+            
+        if crossRefResults["message"]["items"][0]["score"] >= threshold:
             return crossRefResults["message"]["items"][0]
         else:
             return None
