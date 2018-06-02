@@ -47,35 +47,38 @@ class ResearchReferenceLibrary:
         return response
     
     
-    def lookup_crossref(citation,doi=None,threshold=60):
+    def lookup_crossref(citation,threshold=60):
         import requests
         from datetime import datetime
         
-        crossRefDoc = {"Success":False,"Check Date":datetime.utcnow().isoformat()}
+        crossRefDoc = {"Success":False,"Date Checked":datetime.utcnow().isoformat()}
         
         crossRefWorksAPI = "https://api.crossref.org/works"
         mailTo = "bcb@usgs.gov"
         
-        crossRefQueryNoDOI = crossRefWorksAPI+"?mailto="+mailTo+"&query.bibliographic="+citation
-        if doi is None:
-            crossRefQuery = crossRefQueryNoDOI
-        else:
-            crossRefQuery = crossRefQueryNoDOI+"&filter=doi:"+doi
-        
+        crossRefQuery = crossRefWorksAPI+"?mailto="+mailTo+"&query.bibliographic="+citation
         crossRefDoc["Query URL"] = crossRefQuery
         crossRefResults = requests.get(crossRefQuery).json()
         
-        if "items" in crossRefResults["message"].keys() and len(crossRefResults["message"]["items"]) > 0 and crossRefResults["message"]["items"][0]["score"] >= threshold:
+        if crossRefResults["status"] != "failed" and "items" in crossRefResults["message"].keys() and len(crossRefResults["message"]["items"]) > 0 and crossRefResults["message"]["items"][0]["score"] >= threshold:
             crossRefDoc["Success"] = True
             crossRefDoc["Score"] = crossRefResults["message"]["items"][0]["score"]
             crossRefDoc["Record"] = crossRefResults["message"]["items"][0]
-        else:
-            if doi is not None:
-                crossRefDoc["Query URL"] = crossRefQueryNoDOI
-                crossRefResults = requests.get(crossRefQueryNoDOI).json()
-                if "items" in crossRefResults["message"].keys() and len(crossRefResults["message"]["items"]) > 0 and crossRefResults["message"]["items"][0]["score"] >= threshold:
-                    crossRefDoc["Success"] = True
-                    crossRefDoc["Score"] = crossRefResults["message"]["items"][0]["score"]
-                    crossRefDoc["Record"] = crossRefResults["message"]["items"][0]
 
         return crossRefDoc
+    
+   
+    def lookup_scopus_by_doi(doi):
+        import requests
+        import os
+        
+        result = requests.get("https://api.elsevier.com/content/search/scopus?apiKey="+os.environ["SCOPUSKEY"]+"&query=doi("+doi+")", headers={"Accept":"application/json"}).json()
+        return result
+
+    
+    def scopus_citations_by_doi(doi):
+        import requests
+        import os
+
+        result = requests.get("https://api.elsevier.com/content/abstract/citations?apiKey="+os.environ["SCOPUSKEY"]+"&doi="+doi, headers={"Accept":"application/json"}).json()
+        return result

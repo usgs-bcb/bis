@@ -33,6 +33,7 @@ from .tess import *
 from .tir import *
 from .worms import *
 from .sgcn import *
+from .dd import *
 
 # provide version, PEP - three components ("major.minor.micro")
 __version__ = pkg_resources.require("bis")[0].version
