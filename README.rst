@@ -10,7 +10,7 @@ If you have git and pip available, bis can be installed with:
 
 `pip install git+https://github.com/usgs-bcb/bis.git`
 
-Note: the dd module in this package currently requires users to set the following system variables in order to access the DataDistillery MongoDB components - MONGOUSER, MONGOPASS, MONGOSERVER, MONGOPATH
+Note: the dd module in this package currently requires users to set the following system variables in order to access the DataDistillery MongoDB components - MONGOUSER, MONGOPASS, MONGOSERVER, MONGOPATH. For the Anaconda Python and Jupyter Notebook environments we are working with at this stage of development the method described in [this article](https://conda.io/docs/user-guide/tasks/manage-environments.html#saving-environment-variables) works as a reasonable method for establishing environment variables for a particular Python environment.
 
 
 -----------
