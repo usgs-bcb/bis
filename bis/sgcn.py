@@ -39,7 +39,6 @@ def sgcn_source_item_metadata(item):
     sourceItem["processingMetadata"]["dateProcessed"] = datetime.utcnow().isoformat()
 
     sgcn_year = next((d for d in item["dates"] if d["type"] == "Collected"), None)["dateString"]
-    print(sgcn_year)
     if sgcn_year is None:
         return None
     else:
