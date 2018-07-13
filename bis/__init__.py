@@ -24,16 +24,16 @@ import pkg_resources  # part of setuptools
 # Import bis objects
 from .bis import *
 from .bison import *
+from .db import *
 from .gap import *
 from .itis import *
 from .iucn import *
 from .natureserve import *
 from .rrl import *
+from .sgcn import *
 from .tess import *
 from .tir import *
 from .worms import *
-from .sgcn import *
-from .db import *
 
 # provide version, PEP - three components ("major.minor.micro")
 __version__ = pkg_resources.require("bis")[0].version
