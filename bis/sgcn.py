@@ -52,7 +52,6 @@ def sgcn_source_item_metadata(item):
         sourceItem["processingMetadata"]["sgcn_state"] = sgcn_state
 
     processFile = next((f for f in item["files"] if f["title"] == "Process File"), None)
-    print(processFile)
     if processFile is None:
         return None
     else:
