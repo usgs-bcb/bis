@@ -33,7 +33,8 @@ def lookupWoRMS(nameString):
     if nameResults_exact.status_code == 200:
         wormsDoc = nameResults_exact.json()[0]
         wormsDoc["taxonomy"] = buildWoRMSTaxonomy(wormsDoc)
-        wormsResult["processingMetadata"]["searchURL"] = url_ExactMatch
+        wormsResult["processingMetadata"]["Search URL"] = url_ExactMatch
+        wormsResult["processingMetadata"]["Summary Result"] = "Exact Match"
         wormsData.append(wormsDoc)
         if wormsDoc["AphiaID"] not in aphiaIDs:
             aphiaIDs.append(wormsDoc["AphiaID"])
@@ -43,13 +44,15 @@ def lookupWoRMS(nameString):
         if nameResults_fuzzy.status_code == 200:
             wormsDoc = nameResults_fuzzy.json()[0]
             wormsDoc["taxonomy"] = buildWoRMSTaxonomy(wormsDoc)
-            wormsResult["processingMetadata"]["searchURL"] = url_FuzzyMatch
+            wormsResult["processingMetadata"]["Search URL"] = url_FuzzyMatch
+            wormsResult["processingMetadata"]["Summary Result"] = "Fuzzy Match"
             wormsData.append(wormsDoc)
             if wormsDoc["AphiaID"] not in aphiaIDs:
                 aphiaIDs.append(wormsDoc["AphiaID"])
         else:
             wormsDoc = {}
-            wormsResult["processingMetadata"]["searchURL"] = url_FuzzyMatch
+            wormsResult["processingMetadata"]["Search URL"] = url_FuzzyMatch
+            wormsResult["processingMetadata"]["Summary Result"] = "Fuzzy Match"
             wormsData.append(wormsDoc)
 
     if len(wormsData) > 0 and "valid_AphiaID" in wormsData[0].keys():
@@ -61,7 +64,8 @@ def lookupWoRMS(nameString):
                 if aphiaIDResults.status_code == 200:
                     wormsDoc = aphiaIDResults.json()
                     wormsDoc["taxonomy"] = buildWoRMSTaxonomy(wormsDoc)
-                    wormsResult["processingMetadata"]["searchURL"] = url_AphiaID
+                    wormsResult["processingMetadata"]["Search URL"] = url_AphiaID
+                    wormsResult["processingMetadata"]["Summary Result"] = "Followed Valid AphiaID"
                     wormsData.append(wormsDoc)
                     if wormsDoc["AphiaID"] not in aphiaIDs:
                         aphiaIDs.append(wormsDoc["AphiaID"])
