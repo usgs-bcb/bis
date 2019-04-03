@@ -13,7 +13,7 @@ setup(
     name='bis',
 
 # PEP - version as three components ("major.minor.micro")
-    version='0.0.3',
+    version='0.0.4',
 
     description='A set of helper code for Biogeographic Information System projects',
     long_description=read('README.rst'),
@@ -39,6 +39,7 @@ setup(
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
     ],
 
     keywords='biogeography',

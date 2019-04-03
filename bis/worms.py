@@ -19,6 +19,11 @@ def lookupWoRMS(nameString):
     import requests
     from datetime import datetime
     
+    wormsResult = {}
+    wormsResult["Processing Metadata"] = {}
+    wormsResult["Processing Metadata"]["Date Processed"] = datetime.utcnow().isoformat()
+    wormsResult["Processing Metadata"]["Summary Result"] = "Not Matched"
+
     wormsData = []
     aphiaIDs = []
     
@@ -28,30 +33,23 @@ def lookupWoRMS(nameString):
     if nameResults_exact.status_code == 200:
         wormsDoc = nameResults_exact.json()[0]
         wormsDoc["taxonomy"] = buildWoRMSTaxonomy(wormsDoc)
-        wormsDoc["tir"] = {}
-        wormsDoc["tir"]["dateProcessed"] = datetime.utcnow().isoformat()
-        wormsDoc["tir"]["searchURL"] = url_ExactMatch
+        wormsResult["Processing Metadata"]["Search URL"] = url_ExactMatch
+        wormsResult["Processing Metadata"]["Summary Result"] = "Exact Match"
         wormsData.append(wormsDoc)
         if wormsDoc["AphiaID"] not in aphiaIDs:
             aphiaIDs.append(wormsDoc["AphiaID"])
     else:
         url_FuzzyMatch = getWoRMSSearchURL("FuzzyName",nameString)
+        wormsResult["Processing Metadata"]["Search URL"] = url_FuzzyMatch
         nameResults_fuzzy = requests.get(url_FuzzyMatch)
         if nameResults_fuzzy.status_code == 200:
             wormsDoc = nameResults_fuzzy.json()[0]
             wormsDoc["taxonomy"] = buildWoRMSTaxonomy(wormsDoc)
-            wormsDoc["tir"] = {}
-            wormsDoc["tir"]["dateProcessed"] = datetime.utcnow().isoformat()
-            wormsDoc["tir"]["searchURL"] = url_FuzzyMatch
+            wormsResult["Processing Metadata"]["Summary Result"] = "Fuzzy Match"
             wormsData.append(wormsDoc)
             if wormsDoc["AphiaID"] not in aphiaIDs:
                 aphiaIDs.append(wormsDoc["AphiaID"])
-        else:
-            wormsDoc = {}
-            wormsDoc["tir"] = {}
-            wormsDoc["tir"]["dateProcessed"] = datetime.utcnow().isoformat()
-            wormsDoc["tir"]["searchURL"] = url_FuzzyMatch
-            wormsData.append(wormsDoc)
+
 
     if len(wormsData) > 0 and "valid_AphiaID" in wormsData[0].keys():
         valid_AphiaID = wormsData[0]["valid_AphiaID"]
@@ -62,9 +60,8 @@ def lookupWoRMS(nameString):
                 if aphiaIDResults.status_code == 200:
                     wormsDoc = aphiaIDResults.json()
                     wormsDoc["taxonomy"] = buildWoRMSTaxonomy(wormsDoc)
-                    wormsDoc["tir"] = {}
-                    wormsDoc["tir"]["dateProcessed"] = datetime.utcnow().isoformat()
-                    wormsDoc["tir"]["searchURL"] = url_AphiaID
+                    wormsResult["Processing Metadata"]["Search URL"] = url_AphiaID
+                    wormsResult["Processing Metadata"]["Summary Result"] = "Followed Valid AphiaID"
                     wormsData.append(wormsDoc)
                     if wormsDoc["AphiaID"] not in aphiaIDs:
                         aphiaIDs.append(wormsDoc["AphiaID"])
@@ -77,5 +74,8 @@ def lookupWoRMS(nameString):
             else:
                 valid_AphiaID = None
 
-    return (wormsData)
+    if len(wormsData) > 0:
+        wormsResult["wormsData"] = wormsData
+
+    return (wormsResult)
 
