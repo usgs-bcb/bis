@@ -149,7 +149,7 @@ def sgcn_tess_synthesis(sgcnTIRProcessCollection,submittedNames):
     tessSynthesis = []
     
     for tirRecord in sgcnTIRProcessCollection.find({"$and":[{"ScientificName_original":{"$in":submittedNames}},{"tess.processingMetadata.matchMethod":{"$ne":"Not Matched"}}]},{"tess":1}):
-        if len([d for d in tessSynthesis if d["ENTITY_ID"] == tirRecord["tess"]["tessData"]["ENTITY_ID"]]) == 0:
+        if len([d for d in tessSynthesis if 'tessData' in tirRecord["tess"] and d["ENTITY_ID"] == tirRecord["tess"]["tessData"]["ENTITY_ID"]]) == 0:
             tessSynthesis.append(tirRecord["tess"]["tessData"])
             
     if len(tessSynthesis) == 0:
