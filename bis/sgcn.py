@@ -33,22 +33,22 @@ def getTaxGroup(taxonomy,mappings):
 
 def sgcn_source_item_metadata(item):
     from datetime import datetime
-    
-    sourceItem = {"processingMetadata":{}}
+
+    sourceItem = {"processingMetadata": {}}
     sourceItem["processingMetadata"]["sourceID"] = item["link"]["url"]
     sourceItem["processingMetadata"]["dateProcessed"] = datetime.utcnow().isoformat()
 
     sgcn_year = next((d for d in item["dates"] if d["type"] == "Collected"), None)["dateString"]
-    if isinstance(sgcn_year, int):
-        sourceItem["processingMetadata"]["sgcn_year"] = sgcn_year
-    else:
+    if sgcn_year is None:
         return None
+    else:
+        sourceItem["processingMetadata"]["sgcn_year"] = sgcn_year
 
     sgcn_state = next((t for t in item["tags"] if t["type"] == "Place"), None)["name"]
-    if isinstance(sgcn_state, str):
-        sourceItem["processingMetadata"]["sgcn_state"] = sgcn_state
-    else:
+    if sgcn_state is None:
         return None
+    else:
+        sourceItem["processingMetadata"]["sgcn_state"] = sgcn_state
 
     processFile = next((f for f in item["files"] if f["title"] == "Process File"), None)
     if processFile is None:
@@ -56,7 +56,8 @@ def sgcn_source_item_metadata(item):
     else:
         sourceItem["processingMetadata"]["processFileURL"] = processFile["url"]
         sourceItem["processingMetadata"]["processFileName"] = processFile["name"]
-        sourceItem["processingMetadata"]["processFileUploadDate"] = datetime.strptime(processFile["dateUploaded"].split("T")[0], "%Y-%m-%d")
+        sourceItem["processingMetadata"]["processFileUploadDate"] = datetime.strptime(
+            processFile["dateUploaded"].split("T")[0], "%Y-%m-%d")
         return sourceItem
 
 
@@ -148,7 +149,7 @@ def sgcn_tess_synthesis(sgcnTIRProcessCollection,submittedNames):
     tessSynthesis = []
     
     for tirRecord in sgcnTIRProcessCollection.find({"$and":[{"ScientificName_original":{"$in":submittedNames}},{"tess.processingMetadata.matchMethod":{"$ne":"Not Matched"}}]},{"tess":1}):
-        if len([d for d in tessSynthesis if d["ENTITY_ID"] == tirRecord["tess"]["tessData"]["ENTITY_ID"]]) == 0:
+        if len([d for d in tessSynthesis if 'tessData' in tirRecord["tess"] and d["ENTITY_ID"] == tirRecord["tess"]["tessData"]["ENTITY_ID"]]) == 0:
             tessSynthesis.append(tirRecord["tess"]["tessData"])
             
     if len(tessSynthesis) == 0:
