@@ -157,8 +157,8 @@ def sgcn_tess_synthesis(sgcnTIRProcessCollection,submittedNames):
         return None
     else:
         tessRecord = {"Number of TESS Records":len(tessSynthesis),"TESS Records":tessSynthesis}
-        tessRecord["Primary Listing Status"] = "Undetermined (check data)"
-        tessRecord["Primary Listing Date"] = "Undetermined (check data)"
+        tessRecord["Primary Listing Status"] = None
+        tessRecord["Primary Listing Date"] = None
         if len(tessSynthesis) == 1:
             try:
                 primaryListingStatus = [r for r in tessSynthesis[0]["listingStatus"] if r["POP_DESC"].lower() == "wherever found"]
@@ -205,11 +205,11 @@ def sgcn_natureserve_summary(sgcnTIRCollection,ScientificName):
         try:
             nsSummaryRecord["National Status Last Reviewed"] = natureServeRecord["NatureServe"]["NatureServe Record"]["nationalConservationStatus"]["@lastReviewedDate"]
         except:
-            nsSummaryRecord["National Status Last Reviewed"] = "Unknown"
+            nsSummaryRecord["National Status Last Reviewed"] = None
         try:
             nsSummaryRecord["National Status Last Changed"] = natureServeRecord["NatureServe"]["NatureServe Record"]["nationalConservationStatus"]["@lastChangedDate"]
         except:
-            nsSummaryRecord["National Status Last Changed"] = "Unknown"
+            nsSummaryRecord["National Status Last Changed"] = None
         return {"NatureServe Summary":nsSummaryRecord}
         
         
